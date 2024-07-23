@@ -2,33 +2,38 @@ import pandas as pd
 import json
 import ast
 
-def json_to_csv(json_file_path, csv_file_path):
-    # Load JSON data
-    with open(json_file_path, 'r') as file:
-        try:
-            data = json.load(file)
-            data = ast.literal_eval(data)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Error decoding JSON file: {e}")
+def collect_keys(data, level=0, keys_by_level=None):
+    if keys_by_level is None:
+        keys_by_level = {}
     
-    # Check the type of data and normalize accordingly
-    if isinstance(data, list):
-        # Case 1: JSON is a list of dictionaries
-        df = pd.json_normalize(data)
+    if level not in keys_by_level:
+        keys_by_level[level] = set()
     
-    elif isinstance(data, dict):
-        # Case 2: JSON is a dictionary of dictionaries
-        # Convert dictionary to a list of dictionaries
-        data_list = [{'key': k, **v} for k, v in data.items()]
-        df = pd.json_normalize(data_list)
+    if isinstance(data, dict):
+        for key, value in data.items():
+            keys_by_level[level].add(key)
+            collect_keys(value, level + 1, keys_by_level)
+    elif isinstance(data, list):
+        for item in data:
+            collect_keys(item, level, keys_by_level)
     
-    else:
-        raise ValueError("Unsupported JSON format. The JSON must be a list of objects or a dictionary of objects.")
-    
-    # Write the DataFrame to a CSV file
-    df.to_csv(csv_file_path, index=False)
+    return keys_by_level
 
-# Example usage
-json_file_path = 'package_descriptions.json'  # Replace with your JSON file path
-csv_file_path = 'output_file.csv'           # Replace with your desired CSV file path
-json_to_csv(json_file_path, csv_file_path)
+input_file_path = 'package_descriptions.json'
+nested_json = pd.read_json(input_file_path)
+# Collect keys layer by layer
+keys_by_level = collect_keys(nested_json)
+
+# Convert the collected keys to a DataFrame
+data = {"Level": [], "Keys": []}
+for level, keys in keys_by_level.items():
+    data["Level"].append(level)
+    data["Keys"].append(", ".join(keys))
+
+df = pd.DataFrame(data)
+
+# Save the DataFrame to a CSV file
+df.to_csv('keys_by_level.csv', index=False)
+
+# Display the DataFrame
+print(df)

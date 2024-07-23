@@ -22,6 +22,6 @@ def extract_column_to_list(file_path, sheet_name='Sheet1', column_name='Package_
     return column_data
 
 # Example usage
-file_path = 'path_to_your_file.xlsx'  # Change this to your file path
-column_data = extract_column_to_list(file_path)
+file_path = 'fake_app_df.csv'  # Change this to your file path
+column_data = extract_column_to_list(file_path, column_name = 'Package_name')
 print(column_data)
